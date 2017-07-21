@@ -3,7 +3,9 @@ Please note that this code is still slow and doesn't quite do everything yet.
 I'll send updates as I improve on it. I'll be performing the following steps:
 
 • Step 1: fully implement all functionality.
+
 • Step 2: change up the data types to use exclusively numpy arrays.
+
 • Step 3: parallelise the code.
 
 To run any of the Python code, you will need to import the module, e.g.:
