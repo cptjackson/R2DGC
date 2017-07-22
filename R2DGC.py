@@ -432,7 +432,8 @@ def ConsensusAlign(inputFileList,
                          commonIons=[],
                          missingValueLimit=0.75,
                          missingPeakFinderSimilarityLax=0.85,
-                         quantMethod="T"):
+                         quantMethod="T",
+                         standardLibrary=None):
 
   #Function to import files
   def ImportFile(File, commonIons=[], RT1_Standards=None, RT2_Standards=None):
@@ -793,72 +794,72 @@ def ConsensusAlign(inputFileList,
 
 
   #Add metabolite IDs if standardLibrary is used
-  # if standardLibrary is not None:
-  #   print("Matching peaks to standard library")
-  #
-  #   #Parse seed file spectras
-  #   peakCol = SeedSample[0].iloc[:,4]
-  #   peakSpectraSplit = peakCol.str.split(' ')
-  #   peakSpectraSplit = peakSpectraSplit.apply(lambda row: [i.split(':') for i in row])
-  #   peakSpectraSplit = peakSpectraSplit.apply(lambda row: [[float(x) for x in i] for i in row])
-  #   peakSpectraSplit = peakSpectraSplit.apply(lambda row: [[i[0] for i in row], [i[1] for i in row]])
-  #   peakSpectraSplit = peakSpectraSplit.apply(lambda row: [pd.Series(row[0])[~pd.Series(row[0]).isin(commonIons)].tolist(),pd.Series(row[1])[~pd.Series(row[0]).isin(commonIons)].tolist()])
-  #   peakSpectraSplit = peakSpectraSplit.apply(lambda row: sorted(enumerate(row[1]), key=lambda x: row[0][x[0]]))
-  #   peakSpectraSplit = peakSpectraSplit.apply(lambda row: [i[1] for i in row])
-  #   peakSpectraFrame = pd.DataFrame(peakSpectraSplit)
-  #   peakSpectraFrame = peakSpectraFrame['Spectra'].apply(pd.Series)
-  #   peakSpectraFrame = peakSpectraFrame.T/np.sqrt(np.square(peakSpectraFrame.T).apply(lambda row: sum(row)))
-  #
-  #   #Parse standard library spectras
-  #   standardCol = standardLibrary.iloc[:,2]
-  #   standardSpectraSplit = standardCol.str.split(' ')
-  #   standardSpectraSplit = standardSpectraSplit.apply(lambda row: [i.split(':') for i in row])
-  #   standardSpectraSplit = standardSpectraSplit.apply(lambda row: [[float(x) for x in i] for i in row])
-  #   standardSpectraSplit = standardSpectraSplit.apply(lambda row: [[i[0] for i in row], [i[1] for i in row]])
-  #   standardSpectraSplit = standardSpectraSplit.apply(lambda row: [pd.Series(row[0])[~pd.Series(row[0]).isin(commonIons)].tolist(),pd.Series(row[1])[~pd.Series(row[0]).isin(commonIons)].tolist()])
-  #   standardSpectraSplit = standardSpectraSplit.apply(lambda row: sorted(enumerate(row[1]), key=lambda x: row[0][x[0]]))
-  #   standardSpectraSplit = standardSpectraSplit.apply(lambda row: [i[1] for i in row])
-  #   standardSpectraFrame = pd.DataFrame(standardSpectraSplit)
-  #   standardSpectraFrame = standardSpectraFrame['Spectra'].apply(pd.Series)
-  #   standardSpectraFrame = standardSpectraFrame.T/np.sqrt(np.square(standardSpectraFrame.T).apply(lambda row: sum(row)))
-  #   SimilarityMatrix = standardSpectraFrame.T.dot(peakSpectraFrame)*100
-  #
-  #
-  #   #Compute RT differences
-  #   RT1Index = SeedSample[0]['RT1'].apply(lambda x: abs(x-standardLibrary.iloc[:,3])*RT1Penalty)
-  #   RT2Index = SeedSample[0]['RT2'].apply(lambda x: abs(x-standardLibrary.iloc[:,4])*RT2Penalty)
-  #
-  #   #Use RT indices to calculate RT penalties if necessary
-  #   if RT1_Standards is not None:
-  #     #Compute list of metabolite to RT1 standard differences between current file and seed file for each metabolite
-  #     RT1Index = []
-  #     RT1_Length = max(SeedSample[0][SeedSample[0].iloc[:,0].isin(RT1_Standards)].iloc[:,5])-min(SeedSample[0][SeedSample[0].iloc[:,0].isin(RT1_Standards)].iloc[:,5])
-  #
-  #     for Standard in RT1_Standards:
-  #       RT1Index.append((SeedSample[0][Standard + '_RT1'].apply(lambda x: abs(x-standardLibrary[Standard + '_RT1'])*RT1Penalty/len(RT1_Standards))*RT1_Length).T)
-  #
-  #     #Sum all relative standard differences into a final score
-  #     RT1Index = sum(RT1Index)
-  #
-  #   if RT2_Standards is not None:
-  #     #Compute list of metabolite to RT2 standard differences between current file and seed file for each metabolite
-  #     RT2Index = []
-  #     RT2_Length = max(SeedSample[0][SeedSample[0].iloc[:,0].isin(RT2_Standards)].iloc[:,5])-min(SeedSample[0][SeedSample[0].iloc[:,0].isin(RT2_Standards)].iloc[:,5])
-  #
-  #     for Standard in RT2_Standards:
-  #       RT2Index.append((SeedSample[0][Standard + '_RT2'].apply(lambda x: abs(x-standardLibrary[Standard + '_RT2'])*RT2Penalty/len(RT2_Standards))*RT2_Length).T)
-  #
-  #     #Sum all relative standard differences into a final score
-  #     RT2Index = sum(RT2Index)
-  #
-  #   #Subtract RT penalties from Similarity Scores
-  #   SimilarityMatrix = SimilarityMatrix-RT1Index-RT2Index
-  #   #SimilarityMatrix<-SimilarityMatrix-RT1Index-RT2Index
-  #   #row.names(SimilarityMatrix)<-standardLibrary[,1]
-  #
-  #   #Append top three ID matches to each metabolite and scores to seedRaw for output
-  #   #SeedSample[[1]]<-cbind(t(apply(SimilarityMatrix,2,function(x) paste(names(x[order(-x)])[1:3],round(x[order(-x)][1:3],2),sep="_"))),SeedSample[[1]])
-  #   #colnames(SeedSample[[1]])<-c("Library_Match_1","Library_Match_2","Library_Match_3",colnames(SeedSample[[1]])[4:length(colnames(SeedSample[[1]]))])
+  if standardLibrary is not None:
+    print("Matching peaks to standard library")
+
+    #Parse seed file spectras
+    peakCol = SeedSample[0].iloc[:,4]
+    peakSpectraSplit = peakCol.str.split(' ')
+    peakSpectraSplit = peakSpectraSplit.apply(lambda row: [i.split(':') for i in row])
+    peakSpectraSplit = peakSpectraSplit.apply(lambda row: [[float(x) for x in i] for i in row])
+    peakSpectraSplit = peakSpectraSplit.apply(lambda row: [[i[0] for i in row], [i[1] for i in row]])
+    peakSpectraSplit = peakSpectraSplit.apply(lambda row: [pd.Series(row[0])[~pd.Series(row[0]).isin(commonIons)].tolist(),pd.Series(row[1])[~pd.Series(row[0]).isin(commonIons)].tolist()])
+    peakSpectraSplit = peakSpectraSplit.apply(lambda row: sorted(enumerate(row[1]), key=lambda x: row[0][x[0]]))
+    peakSpectraSplit = peakSpectraSplit.apply(lambda row: [i[1] for i in row])
+    peakSpectraFrame = pd.DataFrame(peakSpectraSplit)
+    peakSpectraFrame = peakSpectraFrame['Spectra'].apply(pd.Series)
+    peakSpectraFrame = peakSpectraFrame.T/np.sqrt(np.square(peakSpectraFrame.T).apply(lambda row: sum(row)))
+
+    #Parse standard library spectras
+    standardCol = standardLibrary.iloc[:,2]
+    standardSpectraSplit = standardCol.str.split(' ')
+    standardSpectraSplit = standardSpectraSplit.apply(lambda row: [i.split(':') for i in row])
+    standardSpectraSplit = standardSpectraSplit.apply(lambda row: [[float(x) for x in i] for i in row])
+    standardSpectraSplit = standardSpectraSplit.apply(lambda row: [[i[0] for i in row], [i[1] for i in row]])
+    standardSpectraSplit = standardSpectraSplit.apply(lambda row: [pd.Series(row[0])[~pd.Series(row[0]).isin(commonIons)].tolist(),pd.Series(row[1])[~pd.Series(row[0]).isin(commonIons)].tolist()])
+    standardSpectraSplit = standardSpectraSplit.apply(lambda row: sorted(enumerate(row[1]), key=lambda x: row[0][x[0]]))
+    standardSpectraSplit = standardSpectraSplit.apply(lambda row: [i[1] for i in row])
+    standardSpectraFrame = pd.DataFrame(standardSpectraSplit)
+    standardSpectraFrame = standardSpectraFrame['Spectra'].apply(pd.Series)
+    standardSpectraFrame = standardSpectraFrame.T/np.sqrt(np.square(standardSpectraFrame.T).apply(lambda row: sum(row)))
+    SimilarityMatrix = standardSpectraFrame.T.dot(peakSpectraFrame)*100
+
+
+    #Compute RT differences
+    RT1Index = SeedSample[0]['RT1'].apply(lambda x: abs(x-standardLibrary.iloc[:,3])*RT1Penalty)
+    RT2Index = SeedSample[0]['RT2'].apply(lambda x: abs(x-standardLibrary.iloc[:,4])*RT2Penalty)
+
+    #Use RT indices to calculate RT penalties if necessary
+    if RT1_Standards is not None:
+      #Compute list of metabolite to RT1 standard differences between current file and seed file for each metabolite
+      RT1Index = []
+      RT1_Length = max(SeedSample[0][SeedSample[0].iloc[:,0].isin(RT1_Standards)].iloc[:,5])-min(SeedSample[0][SeedSample[0].iloc[:,0].isin(RT1_Standards)].iloc[:,5])
+
+      for Standard in RT1_Standards:
+        RT1Index.append((SeedSample[0][Standard + '_RT1'].apply(lambda x: abs(x-standardLibrary[Standard + '_RT1'])*RT1Penalty/len(RT1_Standards))*RT1_Length).T)
+
+      #Sum all relative standard differences into a final score
+      RT1Index = sum(RT1Index)
+
+    if RT2_Standards is not None:
+      #Compute list of metabolite to RT2 standard differences between current file and seed file for each metabolite
+      RT2Index = []
+      RT2_Length = max(SeedSample[0][SeedSample[0].iloc[:,0].isin(RT2_Standards)].iloc[:,5])-min(SeedSample[0][SeedSample[0].iloc[:,0].isin(RT2_Standards)].iloc[:,5])
+
+      for Standard in RT2_Standards:
+        RT2Index.append((SeedSample[0][Standard + '_RT2'].apply(lambda x: abs(x-standardLibrary[Standard + '_RT2'])*RT2Penalty/len(RT2_Standards))*RT2_Length).T)
+
+      #Sum all relative standard differences into a final score
+      RT2Index = sum(RT2Index)
+
+    #Subtract RT penalties from Similarity Scores
+    SimilarityMatrix = SimilarityMatrix-RT1Index-RT2Index
+    #SimilarityMatrix<-SimilarityMatrix-RT1Index-RT2Index
+    #row.names(SimilarityMatrix)<-standardLibrary[,1]
+
+    #Append top three ID matches to each metabolite and scores to seedRaw for output
+    #SeedSample[[1]]<-cbind(t(apply(SimilarityMatrix,2,function(x) paste(names(x[order(-x)])[1:3],round(x[order(-x)][1:3],2),sep="_"))),SeedSample[[1]])
+    #colnames(SeedSample[[1]])<-c("Library_Match_1","Library_Match_2","Library_Match_3",colnames(SeedSample[[1]])[4:length(colnames(SeedSample[[1]]))])
 
   #returnList<-list(FinalMatrix, SeedSample[[1]], MissingQMFrame)
   returnList = pd.DataFrame([FinalMatrix, SeedSample[0], MissingQMFrame])
@@ -868,17 +869,17 @@ def ConsensusAlign(inputFileList,
 
 def MakeReference(inputFileList, RT1_Standards=None, RT2_Standards=None):
 
-  #Create empty list to add RT-indexed standards
-  StandardLibList = []
-
   #Create empty list for missing retention indices
   MissingRTIndices = pd.DataFrame()
 
-  for File in inputFileList:
+  for ind,File in enumerate(inputFileList):
 
     #Read in file
     currentFile = pd.read_table(File, sep='\t', encoding='latin-1')
-    currentRawFile = currentRawFile.dropna(axis=0,how='any')
+    currentFile = currentFile.dropna(axis=0,how='any')
+
+    # Make sure column 2 is identical
+    currentFile.columns.values[1] = 'R.T. (s)'
 
     #Parse retention time
     RTSplit1 = currentFile.iloc[:,1].str.split(' , ').str[0]
@@ -910,14 +911,23 @@ def MakeReference(inputFileList, RT1_Standards=None, RT2_Standards=None):
         currentFile["RT2_" + Standard] = (currentFile.iloc[:,3] - currentFile[currentFile.iloc[:,0] == Standard].iloc[0][3])/RT2_Length
 
 
+
     #Add indexed metabolite only to StandardLibList
-    StandardLibList.append(currentFile[~currentFile.iloc[:,0].isin(RT1_Standards)])
+    if RT1_Standards is not None and RT2_Standards is not None:
+      libContent = currentFile[~currentFile.iloc[:,0].isin(RT1_Standards) & ~currentFile.iloc[:,0].isin(RT2_Standards)]
+    else:
+      libContent = currentFile
+
+    if ind == 0:
+      StandardLibrary = libContent
+    else:
+      StandardLibrary = pd.concat([StandardLibrary,libContent])
 
 
   #Convert library to dataframe for output
   if len(MissingRTIndices) == 0:
-    StandardLibrary = pd.DataFrame(StandardLibList)
-    StandardLibrary.reset_index(drop=True)
+    StandardLibrary.index = StandardLibrary.iloc[:,0].values
+    StandardLibrary = StandardLibrary.iloc[:,1:]
     return StandardLibrary
 
   if len(MissingRTIndices) > 0:
